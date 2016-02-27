@@ -7,8 +7,9 @@ int grennSat = 0;
 int blueSat = 0;
 const int maxLuminosity = 200;
 volatile bool hasMotion = 0;
-volatile long lastMotion = 0;
-const long minMotionDuration = 5000;
+
+const long minMotionDuration = 1000;
+volatile long lastMotion = minMotionDuration;
 
 void setup() {
   // put your setup code here, to run once:
@@ -23,9 +24,16 @@ void setup() {
   hasMotion = digitalRead(motionSensorPin)!=0;
 }
 void setMotion(){
+  Serial.println("setMotion");
   hasMotion = digitalRead(motionSensorPin)!=0;
-  lastMotion = millis();
-  Serial.println(digitalRead(motionSensorPin));
+  int tmpLastMotion = millis();
+  if(lastMotion < tmpLastMotion - minMotionDuration){//Si le mouvement a été fait aprés la fenetre d'allumage minimum
+    lastMotion = millis();
+  }
+  
+  
+  Serial.println(lastMotion);
+  Serial.println("setMotion ended");
 }
 
 void sleep(int duration){
@@ -36,22 +44,19 @@ void loop() {
   //test();
   
   while(motion()){
-    Serial.println(digitalRead(motionSensorPin));
     analogWrite(deerPin[0],255);
     lightUp(0);
     lightUp(1);
        
   }
-  analogWrite(gardenPins[0],50);
-  analogWrite(gardenPins[1],50);
-  for(int sat=255;sat>50;sat=sat-1){
+  for(int sat=2;sat<50;sat++){
       if(motion()){
         return;
       }
       analogWrite(gardenPins[0],sat);
       analogWrite(gardenPins[1],sat);
   }
-  sleep(30000);
+  sleep(10000);
   //On commence l'extinction
   for(int sat=50;sat>2;sat=sat-1){
       if(motion()){
@@ -77,9 +82,13 @@ void loop() {
 }
 
 bool motion(){
-  if(hasMotion || lastMotion < millis()+minMotionDuration){
+  Serial.println("motion");
+  Serial.println(millis());
+  if(hasMotion || lastMotion > millis()-minMotionDuration){
+    Serial.println("yes motion");
     return true;
   }else{
+    Serial.println("no motion");
     return false;
   }
  
@@ -96,6 +105,8 @@ void rgb(int r,int g,int b){
 }
 void lightUp(int pin){
     int pinNormal = !pin;
+    //Disable the interrupt during the light is changing
+    detachInterrupt(digitalPinToInterrupt(motionSensorPin));
     analogWrite(gardenPins[pinNormal],2);
     for(int sat=2;sat<maxLuminosity;sat=sat+2){
 
@@ -112,6 +123,9 @@ void lightUp(int pin){
       sleep(100);
     }
     analogWrite(gardenPins[pin],2);
+    //reenable the interrupt
+    attachInterrupt(digitalPinToInterrupt(motionSensorPin), setMotion, CHANGE);
+    sleep(1000);
 }
 
 

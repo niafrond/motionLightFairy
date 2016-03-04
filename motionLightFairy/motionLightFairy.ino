@@ -2,7 +2,7 @@ int gardenPins[] = {9,10};
 
 int motionSensorPin = 2;
 int rgbPin[] = {3,11,13};
-const int maxLuminosity = 255;
+const int maxLuminosity = 250;
 const int minLuminosity=maxLuminosity/12;
 volatile bool hasMotion = 0;
 
@@ -18,9 +18,7 @@ void setup() {
   // randomSeed() will then shuffle the random function.
   randomSeed(analogRead(0));
  
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
+  
    Serial.begin(9600);
   attachInterrupt(digitalPinToInterrupt(motionSensorPin), setMotion, CHANGE);
   hasMotion = digitalRead(motionSensorPin)!=0;
@@ -46,37 +44,28 @@ void setMotion(){
   
 }
 
-void sleep(int duration){
+void sleep(long duration){
   delay(duration);
 }
 void loop() {
   // put your main code here, to run repeatedly
   //test();
-  debug("loop : Full light");
+  
+  debug("loop : Debut de captation");
+  while(motion()){
+     debug("loop : Full light");
   //Full light for 5sec
     analogWrite(gardenPins[0],maxLuminosity);
     analogWrite(gardenPins[1],maxLuminosity);
     bonfire(minMotionDuration);
-  debug("loop : Debut de captation");
-  while(motion()){
-     
-    lightUp(0);
-    lightUp(1);
+    
        
   }
-  debug("loop :debut stabilisation");
-  for(int sat=2;sat<50;sat++){
-      if(motion()){
-        return;
-      }
-
-      analogWrite(gardenPins[0],sat);
-      analogWrite(gardenPins[1],sat);
-  }
+  
   debug("loop:big wait");
   bonfire(10000);
    debug("loop:On commence l'extinction");
-  for(int sat=50;sat>2;sat=sat-1){
+  for(int sat=maxLuminosity;sat>2;sat=sat-1){
       if(motion()){
         return;
       }
@@ -90,7 +79,6 @@ void loop() {
     rgb(0,0,0);
     analogWrite(gardenPins[0],0);
     analogWrite(gardenPins[1],0);
-    sleep(500);
     
   }
 
@@ -154,14 +142,14 @@ void lightUp(int pin){
 //We maintain a bonfire while sleeping
 void bonfire(unsigned long sleepDuration){
   serialString="bonfire start for ";
-  long startTime = millis();
+  unsigned long startTime = millis();
   serialString.concat(sleepDuration);
   //debug(serialString);
 
   while(startTime > (millis()-sleepDuration)){
    
 
-    int green = random(55);
+    int green = constrain(random(25),1,25);
     int red = constrain(green*5,0,255);//To make orange, red need o be 5 times greater
     rgb(red,green,0);
     sleep(random(100));

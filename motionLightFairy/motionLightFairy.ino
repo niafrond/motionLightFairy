@@ -2,11 +2,11 @@ int gardenPins[] = {9,10};
 
 int motionSensorPin = 2;
 int rgbPin[] = {3,11,13};
-const int maxLuminosity = 250;
+const int maxLuminosity = 200;
 const int minLuminosity=maxLuminosity/12;
 volatile bool hasMotion = 0;
 
-const long minMotionDuration = 4000;
+const unsigned long minMotionDuration = 4000;
 volatile long lastMotion = 0;
 String serialString = "";
 void setup() {
@@ -64,13 +64,16 @@ void loop() {
   
   debug("loop:big wait");
   bonfire(10000);
-   debug("loop:On commence l'extinction");
-  for(int sat=maxLuminosity;sat>2;sat=sat-1){
+  debug("loop:On commence l'extinction");
+  for(int sat=maxLuminosity;sat>2;sat=sat-4){
       if(motion()){
         return;
       }
       analogWrite(gardenPins[0],sat);
       analogWrite(gardenPins[1],sat);
+      serialString = "Time pending =>";
+      serialString.concat(sat-2);
+      debug(serialString);
       bonfire(1000);
     }
 
@@ -111,34 +114,7 @@ void rgb(int r,int g,int b){
     analogWrite(rgbPin[2], b);
 
 }
-void lightUp(int pin){
-    int pinNormal = !pin;
-    
-    //Disable the interrupt while the light is changing
-    detachInterrupt(digitalPinToInterrupt(motionSensorPin));
-    Serial.println("lightUp: On commence par baisser les lumiéres");
-    for(int sat=maxLuminosity;sat>minLuminosity;sat=sat-5){
-      analogWrite(gardenPins[pin],sat);
-      analogWrite(gardenPins[pinNormal],sat);
-      bonfire(100);
-    }
-    analogWrite(gardenPins[pinNormal],minLuminosity);
-    Serial.println("lightUp : Degrade UP");
-    for(int sat=minLuminosity;sat<maxLuminosity;sat=sat+2){
 
-      analogWrite(gardenPins[pin],sat);
-      bonfire(100);
-    }
-    Serial.println("lightUp : Degrade Down");
-    for(int sat=maxLuminosity;sat>minLuminosity;sat=sat-2){
-      analogWrite(gardenPins[pin],sat);
-      bonfire(100);
-    }
-    analogWrite(gardenPins[pin],minLuminosity);
-    //reenable the interrupt
-    attachInterrupt(digitalPinToInterrupt(motionSensorPin), setMotion, CHANGE);
-    bonfire(1000);
-}
 //We maintain a bonfire while sleeping
 void bonfire(unsigned long sleepDuration){
   serialString="bonfire start for ";
@@ -149,8 +125,8 @@ void bonfire(unsigned long sleepDuration){
   while(startTime > (millis()-sleepDuration)){
    
 
-    int green = constrain(random(25),1,25);
-    int red = constrain(green*5,0,255);//To make orange, red need o be 5 times greater
+    int green = random(50)+1;
+    int red = green*5;//To make orange, red need o be 5 times greater
     rgb(red,green,0);
     sleep(random(100));
   }
